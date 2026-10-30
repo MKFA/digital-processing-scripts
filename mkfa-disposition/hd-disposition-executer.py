@@ -184,34 +184,37 @@ def parse_csv(reappraisal_csv_path, type, root, deaccession_log_path):
         reader = csv.DictReader(aip_csv, fieldnames=header)
         next(reader)
         for row in reader:
-            disposition_decision = row["disposition"]
-            if disposition_decision in disposition_actions.keys():
-                disposition_executables = disposition_actions[disposition_decision]
-                access_action = disposition_executables['access-action']
-                preservation_action = disposition_executables['preservation-action']
-                if type == 'preservation':
-                    action = preservation_action
-                else:
-                    action = access_action
-
-                file_path = row["filename"]
-
-                if action == "remove":
-                    if disposition_decision == "Personal" and "MC" not in file_path:
-                        remove_result = remove(file_path, root)
-                    elif "staging-location" in disposition_executables.keys():
-                        staging = disposition_executables['staging-location']
-                        remove_result = remove(file_path, root, staging_location=staging)
+            try:
+                disposition_decision = row["disposition"]
+                if disposition_decision in disposition_actions.keys():
+                    disposition_executables = disposition_actions[disposition_decision]
+                    access_action = disposition_executables['access-action']
+                    preservation_action = disposition_executables['preservation-action']
+                    if type == 'preservation':
+                        action = preservation_action
                     else:
-                        remove_result = remove(file_path, root)
-
-                    if remove_result:
-                        if file_path.startswith("/p"):
-                            file_path = re.sub(r'^\/p', '', file_path)
-                        add_to_deaccession_log(file_path, disposition_decision, row['filesize'], row["md5"], row["modified"], row['id'], row['format'], row['mime'], deaccession_log_path)
-                
-                elif action == "keep":
-                    continue
+                        action = access_action
+    
+                    file_path = row["filename"]
+    
+                    if action == "remove":
+                        if disposition_decision == "Personal" and "MC" not in file_path:
+                            remove_result = remove(file_path, root)
+                        elif "staging-location" in disposition_executables.keys():
+                            staging = disposition_executables['staging-location']
+                            remove_result = remove(file_path, root, staging_location=staging)
+                        else:
+                            remove_result = remove(file_path, root)
+    
+                        if remove_result:
+                            if file_path.startswith("/p"):
+                                file_path = re.sub(r'^\/p', '', file_path)
+                            add_to_deaccession_log(file_path, disposition_decision, row['filesize'], row["md5"], row["modified"], row['id'], row['format'], row['mime'], deaccession_log_path)
+                    
+                    elif action == "keep":
+                        continue
+            except Exception as e:
+                root_logger.error(f"Error: {e}")
       
 
 
